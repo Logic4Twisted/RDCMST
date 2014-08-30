@@ -102,13 +102,22 @@ class LongestPath:
 
 def Dijkstra(graph, source, function):
     X = Set()
-    sp = dict()
     X.add(source)
-    sp[source] = 0
+
+    # shortest path length
+    sortest_path_length = dict()
+    sortest_path_length[source] = 0
+
+    # edge on the path to source
+    shortes_path_edges = dict()
+    shortes_path_edges[source] = None
+    active_edges = dict()
+
     heap = IndexedMinHeap(graph.noNodes)
     for edge in graph.adj(source):
         if edge is not None:
             heap.insert(edge.to, function(edge))
+            active_edges[edge.to] = edge
 
     while (len(X) != graph.noNodes):
 
@@ -118,17 +127,20 @@ def Dijkstra(graph, source, function):
         path_length, to = heap.pop_key_and_index()
 
         X.add(to)
-        sp[to] = path_length
+        sortest_path_length[to] = path_length
+        shortes_path_edges[to] = active_edges[to]
 
         for edge in graph.adj(to):
             if edge.to not in X:
                 path_to_a = path_length + function(graph.get_edge(to, edge.to))
                 if not heap.contains(edge.to):
                     heap.insert(edge.to, path_to_a)
+                    active_edges[edge.to] = edge
                 elif path_to_a < heap.get_key(edge.to):
                     heap.changeKey(edge.to, path_to_a)
+                    active_edges[edge.to] = edge
 
-    return True, sp
+    return True, sortest_path_length, shortes_path_edges
 
 def kruskal_based_heuristic(graph, root, B):
     """
@@ -150,7 +162,7 @@ def kruskal_based_heuristic(graph, root, B):
     C.insert_objects(graph.nodes)
 
     # inicijalizirati minimalno kasnjenje
-    solution_found, d_min = Dijkstra(graph, root, lambda x: x.delay)
+    solution_found, d_min, sp_edges = Dijkstra(graph, root, lambda x: x.delay)
     if not solution_found:
         print 'Unable to find d_min for the graph. Graph is not connected?'
         return
@@ -217,17 +229,69 @@ def kruskal_based_heuristic(graph, root, B):
     for e in E:
         print e
 
-    # TODO Stage 2
-    print "Stage 2"
+    print
+    print "********* Stage 2 *********"
+    print
 
+    C_s = C.find(root)
+    print 'C_s = ', C_s
+    if number_of_components > 1:
+        for i in graph.get_vertices():
+            C_i = C.find(i)
+            if C_i != C_s:
+                print 'Node ',  i, ' in component ', C_i, ' not connected to root. Subtree root =', v_C[C_i]
+                path_to_C_i = get_path(sp_edges, root, v_C[C_i])
+                path_to_C_i.reverse()
+
+                print 'path from ', v_C[C_i] , ' to ', root, ' : '
+                for edge in path_to_C_i:
+                    print edge
+
+                # finds last u such that d_min[u] = delta[u]
+                u = root
+                for edge in path_to_C_i:
+                    if d_min[edge.to] == delta[edge.to]:
+                        u = edge.to
+                    else:
+                        break
+                print 'u = ', u
+
+                path_to_u = get_path(sp_edges, u, v_C[C_i])
+                path_to_u.reverse()
+
+                for edge in path_to_u:
+                    assert d_min[edge.node] < d_min[edge.to]
+                    print edge.node, edge.to, p[edge.to]
+                    if p[edge.to] != edge.to and p[edge.to] != edge.node:
+                        E.add(edge)
+                        print 'add edge ', edge
+                        edge_to_remove = graph.get_edge(p[edge.to], edge.to)
+                        print 'edge to remove ', edge_to_remove
+                        E.remove(edge_to_remove)
+                        # TODO treba li ovdje update delta[edge.to] i p[edge.to] ???
+                    if edge.to == v_C[C_i]:
+                        print '!!! mislim da i ovdje treba dodati edge u skup rjesenja'
+                        E.add(edge)
+                        print 'add edge ', edge
+                        p[edge.to] = edge.node
+                print
     return E
+
+def get_path(sp_edges, root, destination):
+    path = list()
+    if destination == root or sp_edges[destination] is None:
+        return path
+    edge = sp_edges[destination]
+    path.append(edge)
+    if edge.node != root:
+        path.extend(get_path(sp_edges, root, edge.node))
+    return path
 
 def create_graph(graph, edges):
     new = Graph(graph.noNodes)
     for edge in edges:
         new.add(edge)
     return new
-
 
 
 def readGraph(filename):
@@ -284,9 +348,11 @@ def main(filename, algorithm, parameters):
         for par in parameters:
             print 'parameter :', par
         rdcmst_edges = kruskal_based_heuristic(graph, int(parameters[0]), int(parameters[1]))
+        print '_'*50
         print 'Edges in the tree: '
         for e in rdcmst_edges:
             print e
+        print 'Total cost :', sum(map(lambda x: x.cost, rdcmst_edges))
     elif algorithm.lower() == 'print':
         print 'Graph :'
         print graph
