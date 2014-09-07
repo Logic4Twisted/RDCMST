@@ -45,11 +45,11 @@ class Graph:
         self.noEdges = 0
         self.nodes = {}
         for n in range(1, noNodes + 1):
-            self.nodes[n] = []
+            self.nodes[n] = set()
 
     def add(self, edge):
-        self.nodes[edge.node].append(edge)
-        self.nodes[edge.to].append(edge.reverse())
+        self.nodes[edge.node].add(edge)
+        self.nodes[edge.to].add(edge.reverse())
         self.noEdges += 1
 
     def __str__(self):
