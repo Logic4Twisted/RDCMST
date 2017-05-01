@@ -14,3 +14,11 @@ implemented so far:
 - IndexedMinHeap.py Binary heap that has indexed items (idea from Algorithms 4 book by Sedgewick)
 - RDCMST Kruskal based heuristic by Mario Ruthmaier
 
+Usage :
+
+python RDCMST.py graph_file ['dfs', 'lp_in_tree', 'kbh', 'print'] [parameters to algorithm root and maximum delay if kbh]
+
+for example 
+
+python RDCMST.py data/example_1.txt kbh 1 4
+
